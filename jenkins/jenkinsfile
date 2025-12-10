@@ -10,8 +10,8 @@ pipeline {
                 }
             }
             steps {
-                // התיקון הקריטי: הגדרת משתנה סביבה GOCACHE לתיקיית TMP
-                withEnv(['GOCACHE=/tmp/go-build-cache']) {
+                // התיקון: הוספנו גם את GOMODCACHE לתיקיית TMP
+                withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
                     dir('bugtracker-backend') {
                         sh 'go test -v ./...'
                     }

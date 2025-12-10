@@ -18,7 +18,7 @@ pipeline {
                 }
             }
         }
-        stage('Unit_sest - Frontend'){
+        stage('Unit Test - Frontend'){
             anget {
                 docker{
                     image 'node:20-alpine'

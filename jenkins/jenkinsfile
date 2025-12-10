@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     stages {
-        stage('Unit_sest - baclend'){
+        stage('Unit_sest - baclend') {
             agent {
                 docker {
                     image 'snakee/golang-junit:1.21'
@@ -10,10 +10,12 @@ pipeline {
                 }
             }
             steps {
-                dir('bugtracker-backend') {
-                    sh 'go test -v ./...'
+                // התיקון הקריטי: הגדרת משתנה סביבה GOCACHE לתיקיית TMP
+                withEnv(['GOCACHE=/tmp/go-build-cache']) {
+                    dir('bugtracker-backend') {
+                        sh 'go test -v ./...'
+                    }
                 }
-
             }
         }
     }

@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     stages {
-        stage('Unit_sest - baclend') {
+        // שלב הבקנד (שכבר עובד מצוין)
+        stage('Unit Test - Backend') {
             agent {
                 docker {
                     image 'snakee/golang-junit:1.21'
@@ -10,7 +11,6 @@ pipeline {
                 }
             }
             steps {
-                // התיקון: הוספנו גם את GOMODCACHE לתיקיית TMP
                 withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
                     dir('bugtracker-backend') {
                         sh 'go test -v ./...'
@@ -18,24 +18,23 @@ pipeline {
                 }
             }
         }
-        stage('Unit Test - Frontend'){
-            anget {
-                docker{
+
+        // שלב הפרונטנד (התיקון כאן)
+        stage('Unit Test - Frontend') {
+            agent { // תוקן מ-anget ל-agent
+                docker {
                     image 'node:20-alpine'
                     reuseNode true
                 }
             }
-            steps{
-                dir('bugtracker-frontend'){
+            steps {
+                dir('bugtracker-frontend') {
                     sh '''
                         npm ci
                         npm test
-
                     '''
                 }
             }
         }
-
-
     }
 }

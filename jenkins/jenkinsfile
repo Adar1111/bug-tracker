@@ -17,4 +17,3 @@ pipeline {
         }
     }
 }
-// Adding a small comment to force a new git commit

@@ -2,22 +2,19 @@ pipeline {
     agent any
 
     stages {
-        stage('Unit_sest - baclend') {
-            agent { 
+        stage('Unit_sest - baclend'){
+            agent {
                 docker {
                     image 'snakee/golang-junit:1.21'
                     reuseNode true
                 }
             }
-            
             steps {
-                
-                withEnv(['GOCACHE=/var/jenkins_home/workspace/go-build-cache']) { 
-                    dir('bugtracker-backend') {
-                        sh 'go test -v ./...'
-                    }
+                dir('bugtracker-backend') {
+                    sh 'go test -v ./...'
                 }
-            } 
+
+            }
         }
     }
 }

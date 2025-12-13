@@ -35,6 +35,11 @@ pipeline {
                     '''
                 }
             }
+            post {
+                always{
+                    junit 'backtraker-frontend/test-results.xml'
+                }
+            }
         }
     }
 }

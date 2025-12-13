@@ -71,7 +71,7 @@ pipeline {
                     publishHTML target:[
                         reportDir: 'bugtracker-frontend/reports/coverage',
                         reportFiles: 'index HTML',
-                        reportName: 'Frontend Coverage report'
+                        reportName: 'Frontend Coverage reports'
                     ]
                 }
             }

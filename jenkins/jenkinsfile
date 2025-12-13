@@ -1,63 +1,65 @@
-pipeline {
+pipeline { // 1. פתיחה
     agent any
 
-    stages {
-        // שלב הבקנד (שכבר עובד מצוין)
-        stage('Unit Test - Backend') {
-            agent {
-                docker {
+    stages { // 2. פתיחה
+        
+        // --- שלב הבאקנד (Unit Test - Backend) ---
+        stage('Unit Test - Backend') { // 3. פתיחה
+            agent { // 4. פתיחה
+                docker { // 5. פתיחה
                     image 'snakee/golang-junit:1.21'
                     reuseNode true
-                }
-            }
-            steps {
-                withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
-                    dir('bugtracker-backend') {
+                } // 5. סגירה
+            } // 4. סגירה
+            steps { // 6. פתיחה
+                withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) { // 7. פתיחה
+                    dir('bugtracker-backend') { // 8. פתיחה
                         sh '''
-                        go test -v ./...  2>&1 |go-junit-report > test-results.xml
-                        # Ganatare  civerage report
+                        go test -v ./...  2>&1 | go-junit-report > test-results.xml
+                        # Ganatare coverage report
                         go test -coverprofile coverage.out -covermode atomic ./cmd/... ./internal/...
                         go tool cover -html coverage.out -o coverage.html
 
                         mkdir -p reports
                         mv coverage.html reports/
                         '''
-                    
-                }
-            }
-            post {
-                always{
+                    } // 8. סגירה
+                } // 7. סגירה
+            } // 6. סגירה
+            post { // 9. פתיחה
+                always { // 10. פתיחה
                     junit 'bugtracker-backend/*.xml'
                     publishHTML target: [
                         reportDir: 'bugtracker-backend/reports',
                         reportFiles: 'coverage.html',
                         reportName: 'Backend Coverage Rport',
                     ]
-                }
-            }
-        }
+                } // 10. סגירה
+            } // 9. סגירה
+        } // 3. סגירה של שלב Backend
 
-        // שלב הפרונטנד (התיקון כאן)
-        stage('Unit Test - Frontend') {
-            agent { // תוקן מ-anget ל-agent
-                docker {
+        // --- שלב הפרונטנד (Unit Test - Frontend) ---
+        stage('Unit Test - Frontend') { // 11. פתיחה
+            agent { // 12. פתיחה
+                docker { // 13. פתיחה
                     image 'node:20-alpine'
                     reuseNode true
-                }
-            }
-            steps {
-                dir('bugtracker-frontend') {
+                } // 13. סגירה
+            } // 12. סגירה
+            steps { // 14. פתיחה
+                dir('bugtracker-frontend') { // 15. פתיחה
                     sh '''
                         npm ci
                         npm test
                     '''
-                }
-            }
-            post {
-                always{
+                } // 15. סגירה
+            } // 14. סגירה
+            post { // 16. פתיחה
+                always { // 17. פתיחה
                     junit 'bugtracker-frontend/test-results.xml'
-                }
-            }
-        }
-    }
-}
+                } // 17. סגירה
+            } // 16. סגירה
+        } // 11. סגירה של שלב Frontend
+        
+    } // 2. סגירה של stages
+} // 1. סגירה של pipeline

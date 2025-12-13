@@ -1,23 +1,7 @@
 pipeline {
     agent any
 
-    stages {
-        // שלב הבקנד (שכבר עובד מצוין)
-        stage('Unit Test - Backend') {
-            agent {
-                docker {
-                    image 'snakee/golang-junit:1.21'
-                    reuseNode true
-                }
-            }
-stage('Unit Test - Backend') {
-            agent {
-                docker {
-                    image 'snakee/golang-junit:1.21'
-                    reuseNode true
-                }
-            }
-            steps {
+steps {
                 withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
                     dir('bugtracker-backend') {
                         sh '''

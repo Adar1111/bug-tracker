@@ -56,7 +56,7 @@ pipeline {
                     sh '''
                         npm ci
                         npm test
-                        nkdir -p reports
+                        mkdir -p reports
                         mv coverage reports/
                         
                         
@@ -70,7 +70,7 @@ pipeline {
                     junit 'bugtracker-frontend/test-results.xml'
                     publishHTML target:[
                         reportDir: 'bugtracker-frontend/reports/coverage',
-                        reportFiles: 'index HTML',
+                        reportFiles: 'index.html',
                         reportName: 'Frontend Coverage reports'
                     ]
                 }

@@ -68,10 +68,11 @@ pipeline {
                 always {
                     // הקובץ test-results.xml נוצר על ידי jest-junit
                     junit 'bugtracker-frontend/test-results.xml'
-                    publishHTML target:
+                    publishHTML target:[
                         reportDir: 'bugtracker-frontend/reports/coverage',
                         reportFiles: 'index HTML',
                         reportName: 'Frontend Coverage report'
+                    ]
                 }
             }
         }

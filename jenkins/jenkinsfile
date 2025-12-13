@@ -2,79 +2,86 @@ pipeline {
     agent any
 
     stages {
-        
-        // --- שלב הבאקנד (Unit Test - Backend) ---
-        stage('Unit Test - Backend') {
-            agent {
-                docker {
-                    image 'snakee/golang-junit:1.21'
-                    reuseNode true
-                }
-            }
-            steps {
-                withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
-                    dir('bugtracker-backend') {
-                        // set -o pipefail מבטיח שהשלב ייכשל אם הטסטים נכשלים
-                        sh '''
-                        set -o pipefail 
-                        go test -v ./... 2>&1 | go-junit-report > test-results.xml
-                        
-                        # Generate coverage report
-                        go test -coverprofile coverage.out -covermode atomic ./cmd/... ./internal/...
-                        go tool cover -html coverage.out -o coverage.html
+        // שלב עוטף שמכיל את המקביליות
+        stage('Execute Unit Tests') {
+            parallel {
+                
+                // --- צד ראשון: באק-אנד ---
+                stage('Unit Test - Backend') {
+                    agent {
+                        docker {
+                            image 'snakee/golang-junit:1.21'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
+                            dir('bugtracker-backend') {
+                                sh '''
+                                set -o pipefail 
+                                go test -v ./... 2>&1 | go-junit-report > test-results.xml
+                                
+                                # Generate coverage report
+                                go test -coverprofile coverage.out -covermode atomic ./cmd/... ./internal/...
+                                go tool cover -html coverage.out -o coverage.html
 
-                        mkdir -p reports
-                        mv coverage.html reports/
-                        '''
+                                mkdir -p reports
+                                mv coverage.html reports/
+                                '''
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            junit testResults: 'bugtracker-backend/*.xml'
+                            publishHTML target: [
+                                reportDir: 'bugtracker-backend/reports',
+                                reportFiles: 'coverage.html',
+                                reportName: 'Backend Coverage Report',
+                                allowMissing: true 
+                            ]
+                        }
                     }
                 }
-            }
-            post {
-                always {
-                    junit testResults: 'bugtracker-backend/*.xml'
-                    publishHTML target: [
-                        reportDir: 'bugtracker-backend/reports',
-                        reportFiles: 'coverage.html',
-                        reportName: 'Backend Coverage Report',
-                        // allowMissing: true ימנע כשל אם הדוח לא נוצר
-                        allowMissing: true 
-                    ]
-                }
-            }
-        }
 
-        // --- שלב הפרונטנד (מתוקן למניעת תקיעות וכישלונות) ---
-        stage('Unit Test - Frontend') {
-            agent { 
-                docker {
-                    image 'node:20-alpine'
-                    reuseNode true
+                // --- צד שני: פרונט-אנד ---
+                stage('Unit Test - Frontend') {
+                    agent { 
+                        docker {
+                            image 'node:20-alpine'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        dir('bugtracker-frontend') {
+                            sh '''
+                                npm ci
+                                # CI=true חובה כדי שהטסטים לא ייתקעו
+                                CI=true npm test -- --coverage --reporters=default --reporters=jest-junit
+                                
+                                mkdir -p reports
+                                mv coverage reports/
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            junit 'bugtracker-frontend/test-results.xml'
+                            publishHTML target:[
+                                reportDir: 'bugtracker-frontend/reports/coverage/lcov-report',
+                                reportFiles: 'index.html',
+                                reportName: 'Frontend Coverage reports'
+                            ]
+                        }
+                    }
                 }
-            }
-            steps {
-                dir('bugtracker-frontend') {
-                    sh '''
-                        npm ci
-                        npm test
-                        mkdir -p reports
-                        mv coverage reports/
-                        
-                        
-                        
-                    '''
-                }
-            }
-            post {
-                always {
-                    // הקובץ test-results.xml נוצר על ידי jest-junit
-                    junit 'bugtracker-frontend/test-results.xml'
-                    publishHTML target:[
-                        reportDir: 'bugtracker-frontend/reports/coverage',
-                        reportFiles: 'index.html',
-                        reportName: 'Frontend Coverage reports'
-                    ]
-                }
-            }
+                
+            } // סגירת ה-parallel
+        } // סגירת השלב העוטף Execute Unit Tests
+    }
+    post{
+        always{
+            cleanWs()
         }
     }
 }

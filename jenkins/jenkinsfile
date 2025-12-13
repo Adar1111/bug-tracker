@@ -13,8 +13,13 @@ pipeline {
             steps {
                 withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
                     dir('bugtracker-backend') {
-                        sh 'go test -v ./...'
+                        sh 'go test -v ./...  2>$1 |go-junit-report > test-results.xml'
                     }
+                }
+            }
+            post {
+                always{
+                    junit 'bug-tracker-backend/ test-results.xml'
                 }
             }
         }

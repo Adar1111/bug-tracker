@@ -1,47 +1,37 @@
 pipeline {
     agent any
 
-steps {
+    stages {
+        // שלב הבקנד (שכבר עובד מצוין)
+        stage('Unit Test - Backend') {
+            agent {
+                docker {
+                    image 'snakee/golang-junit:1.21'
+                    reuseNode true
+                }
+            }
+            steps {
                 withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
                     dir('bugtracker-backend') {
                         sh '''
-                        # הדגל הזה (pipefail) יגרום לשלב להיכשל אם הטסטים נכשלים, גם כשיש Pipe
-                        set -o pipefail
-                        
-                        # יצירת התיקייה מראש כדי למנוע שגיאות בשלב ה-publishHTML אם הטסטים נכשלים
-                        mkdir -p reports
-
-                        echo "Running Tests..."
-                        # הרצת הטסטים + יצירת דוח XML
-                        go test -v ./... 2>&1 | go-junit-report > test-results.xml
-                        
-                        echo "Generating Coverage..."
-                        # יצירת דוח כיסוי
+                        go test -v ./...  2>&1 |go-junit-report > test-results.xml
+                        # Ganatare  civerage report
                         go test -coverprofile coverage.out -covermode atomic ./cmd/... ./internal/...
                         go tool cover -html coverage.out -o coverage.html
 
-                        # העברת הדוח לתיקייה (אם הוא נוצר בהצלחה)
-                        if [ -f coverage.html ]; then
-                            mv coverage.html reports/
-                        else
-                            echo "Warning: coverage.html was not generated!"
-                        fi
+                        mkdir -p reports
+                        mv coverage.html reports/
                         '''
-                    }
+                    
                 }
             }
             post {
-                always {
-                    // איסוף תוצאות הטסטים
-                    junit testResults: 'bugtracker-backend/test-results.xml', allowEmptyResults: true
-                    
-                    // פרסום הדוח - הוספתי allowMissing כדי שלא יכשיל את כל ה-Build אם הדוח חסר
+                always{
+                    junit 'bugtracker-backend/*.xml'
                     publishHTML target: [
                         reportDir: 'bugtracker-backend/reports',
                         reportFiles: 'coverage.html',
-                        reportName: 'Backend Coverage Report',
-                        allowMissing: true, 
-                        alwaysLinkToLastBuild: true
+                        reportName: 'Backend Coverage Rport',
                     ]
                 }
             }

@@ -16,12 +16,15 @@ services:
           - docker
     command: --storage-driver overlay2
 
-  my-jenkins:
+my-jenkins:
     image: my-jenkins
     container_name: my-jenkins
     restart: on-failure
+    depends_on:
+      - jenkins-docker # מבטיח שהשרת יעלה לפני הלקוח
     environment:
-      - DOCKER_HOST=tcp://docker:2376
+      # שנה את 'docker' לשם השירות המפורש 'jenkins-docker'
+      - DOCKER_HOST=tcp://jenkins-docker:2376 
       - DOCKER_CERT_PATH=/certs/client
       - DOCKER_TLS_VERIFY=1
       - JAVA_OPTS=-Dhudson.model.DirectoryBrowserSupport.CSP="default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"

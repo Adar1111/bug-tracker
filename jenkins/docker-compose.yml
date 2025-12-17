@@ -36,7 +36,6 @@ services:
       - "50000:50000"
     networks:
       - jenkins
-
       
 networks:
   jenkins:

@@ -4,8 +4,8 @@ pipeline {
     stages {
         stage('Execute Unit Tests') {
             parallel {
-                
-                // --- Backend ---
+
+                // --- שלב באק-אנד (Go) ---
                 stage('Unit Test - Backend') {
                     agent {
                         docker {
@@ -17,23 +17,24 @@ pipeline {
                         withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
                             dir('bugtracker-backend') {
                                 sh '''
-                                set -o pipefail
-                                # הרצת טסטים ויצירת דוח XML - שים לב לשם הקובץ
-                                go test -v ./... 2>&1 | go-junit-report > test-results.xml
-                                
-                                # יצירת דוח Coverage
-                                go test -coverprofile coverage.out -covermode atomic ./cmd/... ./internal/...
-                                go tool cover -html coverage.out -o coverage.html
-
-                                mkdir -p reports
-                                mv coverage.html reports/
+                                    set -o pipefail
+                                    # הרצת טסטים ויצירת דוח XML
+                                    go test -v ./... 2>&1 | go-junit-report > test-results.xml
+                                    
+                                    # יצירת דוח Coverage
+                                    go test -coverprofile coverage.out -covermode atomic ./cmd/... ./internal/...
+                                    go tool cover -html coverage.out -o coverage.html
+                                    
+                                    # יצירת תיקייה ייעודית לדוחות
+                                    mkdir -p reports
+                                    mv coverage.html reports/
                                 '''
                             }
                         }
                     }
                     post {
                         always {
-                            // הנתיב המדויק לקובץ ה-XML בתוך התיקייה
+                            // ג'נקינס מחפש את הקובץ יחסית לשורש הפרויקט
                             junit 'bugtracker-backend/test-results.xml'
                             publishHTML target: [
                                 reportDir: 'bugtracker-backend/reports',
@@ -45,7 +46,7 @@ pipeline {
                     }
                 }
 
-                // --- Frontend ---
+                // --- שלב פרונט-אנד (React/Node) ---
                 stage('Unit Test - Frontend') {
                     agent { 
                         docker {
@@ -56,20 +57,21 @@ pipeline {
                     steps {
                         dir('bugtracker-frontend') {
                             sh '''
-                            npm ci
-                            # הרצת טסטים. jest-junit יוצר כברירת מחדל קובץ בשם junit.xml
-                            CI=true npm test -- --coverage --reporters=default --reporters=jest-junit
-                            
-                            # אין צורך להעביר את התיקייה, פשוט נפנה אליה ב-Post
+                                npm ci
+                                # הגדרת שם הקובץ ש-jest-junit ייצור
+                                export JEST_JUNIT_OUTPUT_NAME="junit.xml"
+                                # הרצת הטסטים (שימוש ב-CI=true מונע מצב של המתנה לקלט)
+                                CI=true npm test -- --coverage --reporters=default --reporters=jest-junit
                             '''
                         }
                     }
                     post {
                         always {
-                            // jest-junit יוצר קובץ בשם junit.xml בשורש תיקיית הפרויקט
+                            // הנתיב לקובץ ה-XML שנוצר בתוך תיקיית הפרונט-אנד
                             junit 'bugtracker-frontend/junit.xml'
+                            
                             publishHTML target:[
-                                // הנתיב הדיפולטיבי של Jest Coverage הוא תיקיית coverage/lcov-report
+                                // כברירת מחדל Jest יוצר את הדוח בנתיב הזה
                                 reportDir: 'bugtracker-frontend/coverage/lcov-report',
                                 reportFiles: 'index.html',
                                 reportName: 'Frontend Coverage reports',
@@ -78,11 +80,14 @@ pipeline {
                         }
                     }
                 }
-            } // parallel
-        } // Execute Unit Tests
+                
+            } // סגירת parallel
+        } // סגירת Execute Unit Tests
     }
+    
     post {
         always {
+            // ניקוי סביבת העבודה בסיום
             cleanWs()
         }
     }

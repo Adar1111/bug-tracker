@@ -2,11 +2,10 @@ pipeline {
     agent any
 
     stages {
-        // שלב עוטף שמכיל את המקביליות
         stage('Execute Unit Tests') {
             parallel {
                 
-                // --- צד ראשון: באק-אנד ---
+                // --- Backend ---
                 stage('Unit Test - Backend') {
                     agent {
                         docker {
@@ -18,10 +17,11 @@ pipeline {
                         withEnv(['GOCACHE=/tmp/go-build-cache', 'GOMODCACHE=/tmp/go-mod-cache']) {
                             dir('bugtracker-backend') {
                                 sh '''
-                                set -o pipefail 
+                                set -o pipefail
+                                # הרצת טסטים ויצירת דוח XML - שים לב לשם הקובץ
                                 go test -v ./... 2>&1 | go-junit-report > test-results.xml
                                 
-                                # Generate coverage report
+                                # יצירת דוח Coverage
                                 go test -coverprofile coverage.out -covermode atomic ./cmd/... ./internal/...
                                 go tool cover -html coverage.out -o coverage.html
 
@@ -33,7 +33,8 @@ pipeline {
                     }
                     post {
                         always {
-                            junit testResults: 'bugtracker-backend/*.xml'
+                            // הנתיב המדויק לקובץ ה-XML בתוך התיקייה
+                            junit 'bugtracker-backend/test-results.xml'
                             publishHTML target: [
                                 reportDir: 'bugtracker-backend/reports',
                                 reportFiles: 'coverage.html',
@@ -44,7 +45,7 @@ pipeline {
                     }
                 }
 
-                // --- צד שני: פרונט-אנד ---
+                // --- Frontend ---
                 stage('Unit Test - Frontend') {
                     agent { 
                         docker {
@@ -55,32 +56,33 @@ pipeline {
                     steps {
                         dir('bugtracker-frontend') {
                             sh '''
-                                npm ci
-                                # CI=true חובה כדי שהטסטים לא ייתקעו
-                                CI=true npm test -- --coverage --reporters=default --reporters=jest-junit
-                                
-                                mkdir -p reports
-                                mv coverage reports/
+                            npm ci
+                            # הרצת טסטים. jest-junit יוצר כברירת מחדל קובץ בשם junit.xml
+                            CI=true npm test -- --coverage --reporters=default --reporters=jest-junit
+                            
+                            # אין צורך להעביר את התיקייה, פשוט נפנה אליה ב-Post
                             '''
                         }
                     }
                     post {
                         always {
-                            junit 'bugtracker-frontend/test-results.xml'
+                            // jest-junit יוצר קובץ בשם junit.xml בשורש תיקיית הפרויקט
+                            junit 'bugtracker-frontend/junit.xml'
                             publishHTML target:[
-                                reportDir: 'bugtracker-frontend/reports/coverage/lcov-report',
+                                // הנתיב הדיפולטיבי של Jest Coverage הוא תיקיית coverage/lcov-report
+                                reportDir: 'bugtracker-frontend/coverage/lcov-report',
                                 reportFiles: 'index.html',
-                                reportName: 'Frontend Coverage reports'
+                                reportName: 'Frontend Coverage reports',
+                                allowMissing: true
                             ]
                         }
                     }
                 }
-                
-            } // סגירת ה-parallel
-        } // סגירת השלב העוטף Execute Unit Tests
+            } // parallel
+        } // Execute Unit Tests
     }
-    post{
-        always{
+    post {
+        always {
             cleanWs()
         }
     }
